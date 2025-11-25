@@ -64,7 +64,9 @@ st.write(f"\nFeatures shape: {X.shape}, Target shape: {y.shape}")  # Print shape
 # Time-based split for financial data (no shuffling)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 st.header("Different Models Comparison")
-tab1,tab2,tab3,tab4,tab5=st.tabs(["Random Forest", "AdaBoost","XGBoost","Stacking","Voting"])
+tab1,tab2,tab3,tab4,tab5,tab6,tab7=st.tabs(["Random Forest", "AdaBoost","XGBoost",
+                                            "Gradient Boosting","Hist Gradient Boosting",
+                                            "Stacking","Voting"])
 with tab1:
     ct_RF=st.container(border=True) #container for Random forest
 with tab2:
@@ -72,12 +74,18 @@ with tab2:
 with tab3:
     ct_XGB=st.container(border=True) #container for XGboost
 with tab4:
-    ct_stck=st.container(border=True) #container for stacking
+    ct_GB=st.container(border=True)
 with tab5:
+    ct_HGB=st.container(border=True)
+with tab6:
+    ct_stck=st.container(border=True) #container for stacking
+with tab7:
     ct_vt=st.container(border=True) #container for voting
 ct_RF.header("Random Forest")
 ct_AdaB.header("AdaBoost")
 ct_XGB.header("XGBoost")
+ct_GB.header("Gradient Boosting")
+ct_HGB.header("Hist Gradient Boosting")
 ct_stck.header("Stacking")
 ct_vt.header("Voting")
 
@@ -112,8 +120,8 @@ with ct_RF:
     with st.spinner(text="Grid Search for Random Forest"):
         grid_search_rf.fit(X_train, y_train)  # Fit grid search to training data
         best_rf = grid_search_rf.best_estimator_  # Get best Random Forest model
-
-
+        rf_pred_tuned = best_rf.predict(X_test)  # Random Forest predictions
+ct_RF.pyplot(plot_predictions("Random Forest", rf_pred_tuned,X_test,y_test))
 # **************************************************
 #                       AdaBoost
 # **************************************************
@@ -135,6 +143,8 @@ with ct_AdaB:
     with st.spinner(text="Grid Search for AdaBoost"):
         grid_search_ada.fit(X_train, y_train)  # Fit grid search to training data
         best_ada = grid_search_ada.best_estimator_  # Get best AdaBoost model
+        ada_pred_tuned = best_ada.predict(X_test)  # AdaBoost predictions
+ct_AdaB.pyplot(plot_predictions("AdaBoost", ada_pred_tuned,X_test,y_test))
 
 # **************************************************
 #                       XGBoost
@@ -161,7 +171,56 @@ with ct_XGB:
     with st.spinner("Grid Search XGBoost"):
         grid_search_xgb.fit(X_train, y_train)  # Fit grid search to training data
         best_xgb = grid_search_xgb.best_estimator_  # Get best XGBoost model
+        xgb_pred_tuned = best_xgb.predict(X_test)  # XGBoost predictions
+
+ct_XGB.pyplot(plot_predictions("XGBoost", xgb_pred_tuned,X_test,y_test))
 #st.divider()
+# **********************************************************************
+#                     Gradient Boosting
+# **********************************************************************
+from sklearn.ensemble import GradientBoostingRegressor
+param_grid_gb={
+    "n_estimators":[50,100,150], # number of boosting rounds
+    "learning_rate":[0.01,0.05,0.1,0.5,1], #learning rate
+}
+grid_search_gb=GridSearchCV(
+    GradientBoostingRegressor(),
+    param_grid_gb,
+    cv=3,
+    n_jobs=-1,
+    verbose=2,
+    scoring="neg_mean_squared_error"
+)
+with ct_GB:
+    with st.spinner(text="Grid Search for Gradient Boosting"):
+        grid_search_gb.fit(X_train,y_train)
+        best_gb=grid_search_gb.best_estimator_
+        gb_pred_tuned=best_gb.predict(X_test)
+ct_GB.pyplot(plot_predictions("Gradient Boosting",gb_pred_tuned,X_test,y_test))
+# *************************************************************
+#                 Hist Gradient Boosting
+# *************************************************************
+from sklearn.ensemble import HistGradientBoostingRegressor
+param_grid_hgb={
+    #"n_estimators":[50,100,150],
+    "learning_rate":[0.01,0.05,0.1,0.5,1]
+}
+HistGradientBoostingRegressor()
+grid_search_hgb=GridSearchCV(
+    HistGradientBoostingRegressor(),
+    param_grid_hgb,
+    cv=3,
+    n_jobs=-1,
+    verbose=2,
+    scoring="neg_mean_squared_error"
+)
+with ct_HGB:
+    with st.spinner(text="Grid Search for Hist Gradient Boosting"):
+        grid_search_hgb.fit(X_train,y_train)
+        best_hgb=grid_search_hgb.best_estimator_
+        hgb_pred_tuned=best_hgb.predict(X_test)
+        st.pyplot(plot_predictions("Hist Gradient Boosting",hgb_pred_tuned,X_test,y_test))
+   
 
 # **************************************************
 #                       Stacking
@@ -190,7 +249,8 @@ with ct_stck:
     with st.spinner(text="Grid Search for Stacking"):
         grid_search_stack.fit(X_train, y_train)  # Fit grid search to training data
         best_stack = grid_search_stack.best_estimator_  # Get best stacking model
-
+        stack_pred_tuned = best_stack.predict(X_test)  # Stacking predictions
+ct_stck.pyplot(plot_predictions("Stacking", stack_pred_tuned,X_test,y_test))
 # st.divider()
 # ct_vt.header("Voting")
 # **************************************************
@@ -212,32 +272,58 @@ with ct_vt:
     with st.spinner("Grid Search for Voting"):
         voting_reg.fit(X_train, y_train)  # Fit voting regressor to training data
         vote_pred = voting_reg.predict(X_test)  # Predict on test data
-
-with st.container():
-    with st.spinner("predicting using best models"):
+ct_vt.pyplot(plot_predictions("Voting Regressor", vote_pred,X_test,y_test))
+# with st.container():
+#     with st.spinner("predicting using best models"):
         # Making predictions with each of the models
-        rf_pred_tuned = best_rf.predict(X_test)  # Random Forest predictions
-        ada_pred_tuned = best_ada.predict(X_test)  # AdaBoost predictions
-        xgb_pred_tuned = best_xgb.predict(X_test)  # XGBoost predictions
-        stack_pred_tuned = best_stack.predict(X_test)  # Stacking predictions
+        #rf_pred_tuned = best_rf.predict(X_test)  # Random Forest predictions
+        #ada_pred_tuned = best_ada.predict(X_test)  # AdaBoost predictions
+        #xgb_pred_tuned = best_xgb.predict(X_test)  # XGBoost predictions
+        #stack_pred_tuned = best_stack.predict(X_test)  # Stacking predictions
 
 # Define a function to plot predictions
 #import matplotlib.pyplot as plt  # Import plotting library
 
 
 # Use the function to plot each model's results
-ct_RF.pyplot(plot_predictions("Random Forest", rf_pred_tuned,X_test,y_test))
-ct_AdaB.pyplot(plot_predictions("AdaBoost", ada_pred_tuned,X_test,y_test))
-ct_XGB.pyplot(plot_predictions("XGBoost", xgb_pred_tuned,X_test,y_test))
-ct_stck.pyplot(plot_predictions("Stacking", stack_pred_tuned,X_test,y_test))
-ct_vt.pyplot(plot_predictions("Voting Regressor", vote_pred,X_test,y_test))
+#ct_RF.pyplot(plot_predictions("Random Forest", rf_pred_tuned,X_test,y_test))
+#ct_AdaB.pyplot(plot_predictions("AdaBoost", ada_pred_tuned,X_test,y_test))
+#ct_XGB.pyplot(plot_predictions("XGBoost", xgb_pred_tuned,X_test,y_test))
+#ct_stck.pyplot(plot_predictions("Stacking", stack_pred_tuned,X_test,y_test))
+#ct_vt.pyplot(plot_predictions("Voting Regressor", vote_pred,X_test,y_test))
+
+# with st.container(border=True):
+#     tab1,tab2,tab3,tab4=st.tabs(["Gradient Boosting","Hist Gradient Boosting",
+#                                  "LightGBM","CatBoost",])
+# with st.tab1:
+#     ct_GB=st.container(border=True)
+# with st.tab2:
+#     ct_HGB=st.container(border=True)
+# with st.tab3:
+#     ct_LGB=st.container(border=True)
+# with st.tab4:
+#     ct_CB=st.container(border=True)
+
+ 
+# *************************************************************
+#                   LightGBM
+# *************************************************************
+#from lightgbm
 
 st.pyplot(plot_feature_importance(
     best_rf.feature_importances_, X_train.columns, "Random Forest"
 ))  # RF feature importance
 st.pyplot(plot_feature_importance(
+    best_ada.feature_importances_,X_train.columns, "AdaBoost"
+)) #adaboost feature importance
+st.pyplot(plot_feature_importance(
     best_xgb.feature_importances_, X_train.columns, "XGBoost"
 ))  # XGB feature importance
+
+
+st.pyplot(plot_feature_importance(
+    best_gb.feature_importances_,X_train.columns, "Gradient Boosting"))
+
 
 import numpy as np  # Import numpy
 import matplotlib.pyplot as plt  # Import plotting library
@@ -247,6 +333,8 @@ from scripts.ensembles import compute_mape
 mape_rf = compute_mape(y_test, rf_pred_tuned)  # Random Forest MAPE
 mape_ada = compute_mape(y_test, ada_pred_tuned)  # AdaBoost MAPE
 mape_xgb = compute_mape(y_test, xgb_pred_tuned)  # XGBoost MAPE
+mape_gb  = compute_mape(y_test,gb_pred_tuned)
+mape_hgb = compute_mape(y_test,xgb_pred_tuned)
 mape_stack = compute_mape(y_test, stack_pred_tuned)  # Stacking MAPE
 mape_vote = compute_mape(y_test, vote_pred)  # Voting Regressor MAPE
 
@@ -255,14 +343,16 @@ models = [
     "Random Forest",
     "AdaBoost",
     "XGBoost",
+    "Gradient Boosting",
+    "Hist Gradient Boosting",
     "Stacking",
     "Voting Regressor",
 ]  # Model names
-mape_values = [mape_rf, mape_ada, mape_xgb, mape_stack, mape_vote]  # MAPE values
+mape_values = [mape_rf, mape_ada, mape_xgb,mape_gb,mape_hgb, mape_stack, mape_vote]  # MAPE values
 
 fig=plt.figure(figsize=(10, 6))  # Set figure size
 plt.bar(
-    models, mape_values, color=["blue", "green", "red", "purple", "orange"]
+    models, mape_values, color=["blue", "green", "red","cyan" , "yellow", "purple", "orange"]
 )  # Bar plot
 plt.ylabel("MAPE (%)")  # Y-axis label
 plt.title("Mean Absolute Percentage Error (MAPE) for Different Models")  # Title
@@ -274,11 +364,13 @@ st.pyplot(fig)
 
 # Print out the computed MAPE values
 with st.container(border=True):
-    st.write(f"Random Forest MAPE: {mape_rf:.2f}%")
-    st.write(f"AdaBoost MAPE: {mape_ada:.2f}%")
-    st.write(f"XGBoost MAPE: {mape_xgb:.2f}%")
-    st.write(f"Stacking MAPE: {mape_stack:.2f}%")
-    st.write(f"Voting Regressor MAPE: {mape_vote:.2f}%")
+    st.write(f"Random Forest MAPE:\t\t {mape_rf:.2f}%")
+    st.write(f"AdaBoost MAPE:\t\t {mape_ada:.2f}%")
+    st.write(f"XGBoost MAPE:\t\t {mape_xgb:.2f}%")
+    st.write(f"Gradient Boosting MAPE:\t\t {mape_xgb:.2f}%")
+    st.write(f"Hist Gradient Boosting MAPE:\t\t {mape_xgb:.2f}%")
+    st.write(f"Stacking MAPE:\t\t {mape_stack:.2f}%")
+    st.write(f"Voting Regressor MAPE:\t\t {mape_vote:.2f}%")
 
 # Make prediction for next day
 latest_date = btc_usdt.index[-1]  # Get last date in dataset
@@ -290,13 +382,17 @@ next_day_date = (latest_date + timedelta(days=1)).strftime(
 next_day_data = btc_usdt.iloc[-1:].drop(columns=["close"])  # Last row, drop 'Close'
 
 # Predict using the best model
-next_day_pred_rf = best_rf.predict(next_day_data)  # RF prediction
+next_day_pred_rf  = best_rf.predict(next_day_data)  # RF prediction
 next_day_pred_xgb = best_xgb.predict(next_day_data)  # XGB prediction
+next_day_pred_gb  = best_gb.predict(next_day_data)
+next_day_pred_hgb = best_hgb.predict(next_day_data)
 next_day_pred_stack = best_stack.predict(next_day_data)  # Stacking prediction
 
 with st.container(border=True):
     st.title(f"\nPredictions for {next_day_date}:")
-    st.write(f"Random Forest BTC-USD Closing: ${next_day_pred_rf[0]:.2f}")
-    st.write(f"XGBoost BTC-USD Closing: ${next_day_pred_xgb[0]:.2f}")
-    st.write(f"Stacking Ensemble BTC-USD Closing: ${next_day_pred_stack[0]:.2f}")
-    st.write(f"True prediction BTC-USD Closing: ${btc_usdt['close'].iloc[-1]:.2f}")
+    st.write(f"Random Forest BTC-USD Closing:\t\t ${next_day_pred_rf[0]:.2f}")
+    st.write(f"XGBoost BTC-USD Closing:\t\t ${next_day_pred_xgb[0]:.2f}")
+    st.write(f"Gradient Boosting BTC-USD Closing:\t\t ${next_day_pred_gb[0]:.2f}")
+    st.write(f"Hist Gradient Boosting BTC-USD Closing:\t\t ${next_day_pred_hgb[0]:.2f}")
+    st.write(f"Stacking Ensemble BTC-USD Closing:\t\t ${next_day_pred_stack[0]:.2f}")
+    st.write(f"True prediction BTC-USD Closing:\t\t ${btc_usdt['close'].iloc[-1]:.2f}")
