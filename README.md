@@ -56,5 +56,8 @@ Ensembles-in-Machine-Learning/
 ```
 
 ## Results
-streamlit_app/mape_comparison.png
+![error comparison](streamlit_app/mape_comparison.png)
+
+
+
 For detailed instructions please refer to the [Instructions](./Instructions.md) file.
