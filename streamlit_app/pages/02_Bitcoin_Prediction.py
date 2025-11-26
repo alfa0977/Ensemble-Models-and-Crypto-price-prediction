@@ -64,9 +64,9 @@ st.write(f"\nFeatures shape: {X.shape}, Target shape: {y.shape}")  # Print shape
 # Time-based split for financial data (no shuffling)
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 st.header("Different Models Comparison")
-tab1,tab2,tab3,tab4,tab5,tab6,tab7=st.tabs(["Random Forest", "AdaBoost","XGBoost",
+tab1,tab2,tab3,tab4,tab5,tab6,tab7,tab8=st.tabs(["Random Forest", "AdaBoost","XGBoost",
                                             "Gradient Boosting","Hist Gradient Boosting",
-                                            "Stacking","Voting"])
+                                            "LightGBM" ,"Stacking","Voting"])
 with tab1:
     ct_RF=st.container(border=True) #container for Random forest
 with tab2:
@@ -78,14 +78,17 @@ with tab4:
 with tab5:
     ct_HGB=st.container(border=True)
 with tab6:
-    ct_stck=st.container(border=True) #container for stacking
+    ct_LGBM=st.container(border=True)
 with tab7:
+    ct_stck=st.container(border=True) #container for stacking
+with tab8:
     ct_vt=st.container(border=True) #container for voting
 ct_RF.header("Random Forest")
 ct_AdaB.header("AdaBoost")
 ct_XGB.header("XGBoost")
 ct_GB.header("Gradient Boosting")
 ct_HGB.header("Hist Gradient Boosting")
+ct_LGBM.header("LightGBM")
 ct_stck.header("Stacking")
 ct_vt.header("Voting")
 
@@ -205,7 +208,7 @@ param_grid_hgb={
     #"n_estimators":[50,100,150],
     "learning_rate":[0.01,0.05,0.1,0.5,1]
 }
-HistGradientBoostingRegressor()
+#HistGradientBoostingRegressor()
 grid_search_hgb=GridSearchCV(
     HistGradientBoostingRegressor(),
     param_grid_hgb,
@@ -220,7 +223,27 @@ with ct_HGB:
         best_hgb=grid_search_hgb.best_estimator_
         hgb_pred_tuned=best_hgb.predict(X_test)
         st.pyplot(plot_predictions("Hist Gradient Boosting",hgb_pred_tuned,X_test,y_test))
-   
+# ****************************************************
+#                         LightGBM
+# ****************************************************
+from lightgbm import LGBMRegressor
+param_grid_LGBM={
+    "learning_rate":[0.01,0.05,0.1,0.5,1]
+}
+grid_search_LGBM=GridSearchCV(
+    LGBMRegressor(),
+    param_grid_LGBM,
+    cv=2,
+    n_jobs=-1,
+    verbose=2,
+    scoring="neg_mean_squared_error"
+)
+with ct_LGBM:
+    with st.spinner(text="Grid Search for LightGBM"):
+        grid_search_LGBM.fit(X_train,y_train)
+        best_LGBM=grid_search_LGBM.best_estimator_
+        LGBM_pred_tuned=best_LGBM.predict(X_test)
+        st.pyplot(plot_predictions("LightGBM",LGBM_pred_tuned,X_test,y_test))
 
 # **************************************************
 #                       Stacking
@@ -319,7 +342,10 @@ st.pyplot(plot_feature_importance(
 st.pyplot(plot_feature_importance(
     best_xgb.feature_importances_, X_train.columns, "XGBoost"
 ))  # XGB feature importance
-
+st.pyplot(plot_feature_importance(
+    best_LGBM.feature_importances_, X_train.columns, "LightGBM"
+))  # XGB feature importance
+#best_LGBM.
 
 st.pyplot(plot_feature_importance(
     best_gb.feature_importances_,X_train.columns, "Gradient Boosting"))
@@ -335,6 +361,7 @@ mape_ada = compute_mape(y_test, ada_pred_tuned)  # AdaBoost MAPE
 mape_xgb = compute_mape(y_test, xgb_pred_tuned)  # XGBoost MAPE
 mape_gb  = compute_mape(y_test,gb_pred_tuned)
 mape_hgb = compute_mape(y_test,xgb_pred_tuned)
+mape_LGBM = compute_mape(y_test,LGBM_pred_tuned)
 mape_stack = compute_mape(y_test, stack_pred_tuned)  # Stacking MAPE
 mape_vote = compute_mape(y_test, vote_pred)  # Voting Regressor MAPE
 
@@ -364,13 +391,14 @@ st.pyplot(fig)
 
 # Print out the computed MAPE values
 with st.container(border=True):
-    st.write(f"Random Forest MAPE:\t\t {mape_rf:.2f}%")
-    st.write(f"AdaBoost MAPE:\t\t {mape_ada:.2f}%")
-    st.write(f"XGBoost MAPE:\t\t {mape_xgb:.2f}%")
-    st.write(f"Gradient Boosting MAPE:\t\t {mape_xgb:.2f}%")
-    st.write(f"Hist Gradient Boosting MAPE:\t\t {mape_xgb:.2f}%")
-    st.write(f"Stacking MAPE:\t\t {mape_stack:.2f}%")
-    st.write(f"Voting Regressor MAPE:\t\t {mape_vote:.2f}%")
+    st.write(f"Random Forest MAPE: \t\t {mape_rf:.2f}%")
+    st.write(f"AdaBoost MAPE: \t\t {mape_ada:.2f}%")
+    st.write(f"XGBoost MAPE: \t\t {mape_xgb:.2f}%")
+    st.write(f"Gradient Boosting MAPE: \t\t {mape_xgb:.2f}%")
+    st.write(f"Hist Gradient Boosting MAPE: \t\t {mape_xgb:.2f}%")
+    st.write(f"LightGBM MAPE: \t\t {mape_LGBM:.2f}%")
+    st.write(f"Stacking MAPE: \t\t {mape_stack:.2f}%")
+    st.write(f"Voting Regressor MAPE: \t\t {mape_vote:.2f}%")
 
 # Make prediction for next day
 latest_date = btc_usdt.index[-1]  # Get last date in dataset
@@ -386,13 +414,15 @@ next_day_pred_rf  = best_rf.predict(next_day_data)  # RF prediction
 next_day_pred_xgb = best_xgb.predict(next_day_data)  # XGB prediction
 next_day_pred_gb  = best_gb.predict(next_day_data)
 next_day_pred_hgb = best_hgb.predict(next_day_data)
+next_day_pred_LGBM = best_LGBM.predict(next_day_data)
 next_day_pred_stack = best_stack.predict(next_day_data)  # Stacking prediction
 
 with st.container(border=True):
     st.title(f"\nPredictions for {next_day_date}:")
-    st.write(f"Random Forest BTC-USD Closing:\t\t ${next_day_pred_rf[0]:.2f}")
-    st.write(f"XGBoost BTC-USD Closing:\t\t ${next_day_pred_xgb[0]:.2f}")
-    st.write(f"Gradient Boosting BTC-USD Closing:\t\t ${next_day_pred_gb[0]:.2f}")
-    st.write(f"Hist Gradient Boosting BTC-USD Closing:\t\t ${next_day_pred_hgb[0]:.2f}")
-    st.write(f"Stacking Ensemble BTC-USD Closing:\t\t ${next_day_pred_stack[0]:.2f}")
-    st.write(f"True prediction BTC-USD Closing:\t\t ${btc_usdt['close'].iloc[-1]:.2f}")
+    st.write(f"Random Forest BTC-USD Closing:    \t\t ${next_day_pred_rf[0]:.2f}")
+    st.write(f"XGBoost BTC-USD Closing:    \t\t ${next_day_pred_xgb[0]:.2f}")
+    st.write(f"Gradient Boosting BTC-USD Closing:    \t\t ${next_day_pred_gb[0]:.2f}")
+    st.write(f"Hist Gradient Boosting BTC-USD Closing:    \t\t ${next_day_pred_hgb[0]:.2f}")
+    st.write(f"LightGBM BTC-USD Closing:    \t\t ${next_day_pred_LGBM[0]:.2f}")
+    st.write(f"Stacking Ensemble BTC-USD Closing:    \t\t ${next_day_pred_stack[0]:.2f}")
+    st.write(f"True prediction BTC-USD Closing:    \t\t ${btc_usdt['close'].iloc[-1]:.2f}")
