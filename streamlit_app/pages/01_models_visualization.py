@@ -27,12 +27,12 @@ st.markdown("We will first visualizes common ensemble strategies with \
 with st.container(border=True):
     tab1,tab2=st.tabs(["bagging preview", "boosting preview"])
 # Execute the plotting functions
-with tab1:
-    with st.expander(label="bagging circle".upper(),expanded=True):
-        st.pyplot(plot_bagging_circle())  # Plot bagging diagram
-with tab2:
-    with st.expander(label="boosting circle".upper(),expanded=True):
-        st.pyplot(plot_boosting_circle())  # Plot boosting diagram
+# with tab1:
+#     with st.expander(label="bagging circle".upper(),expanded=True):
+#         st.pyplot(plot_bagging_circle())  # Plot bagging diagram
+# with tab2:
+#     with st.expander(label="boosting circle".upper(),expanded=True):
+#         st.pyplot(plot_boosting_circle())  # Plot boosting diagram
 
 # Execute the plotting functions
 with tab1:

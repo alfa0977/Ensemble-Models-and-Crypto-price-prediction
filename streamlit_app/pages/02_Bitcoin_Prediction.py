@@ -8,13 +8,15 @@ import streamlit as st
 from sklearn.model_selection import train_test_split  # For splitting data
 
 warnings.filterwarnings("ignore")  # Suppress warnings for cleaner output
-
+st.title("Using different models for bitcoin Price Prediction")
+st.markdown("Using different models to train last year prices of bitcoin and make a predictor for bitcoin price in the end of the day")
 # Define the Binance API endpoint for daily BTC/USDT candlestick data
 #key = "https://api.binance.us/api/v3/klines?symbol=BTCUSDT&interval=1d&startTime=1735689600000"
 # key="https://api.coingecko.com/api/v3/coins/bitcoin/ohlc"
 # req={"vs_currency":"usd","days":"365"}
 key="https://api.huobi.pro/market/history/kline"
 req={"symbol":"btcusdt","period":"1day","size":"365"}
+st.info((key,f"request={req}"))
 # Send a GET request to the API endpoint
 data = requests.get(key,req)
 data = data.json()  # Parse the response as JSON
@@ -38,6 +40,8 @@ btc_usdt['id']=btc_usdt['id']*1e9
 btc_usdt["id"]=pd.to_datetime(btc_usdt["id"],origin='unix')
 btc_usdt.set_index("id", inplace=True)  # Set 'Date' as the index
 btc_usdt.sort_index(ascending=True, inplace=True)
+st.subheader("Imported data")
+st.markdown("consisting Open, High, Low, Close with volume and amount and count parameters")
 st.dataframe(btc_usdt)
 st.info(f"Loaded data shape: {btc_usdt.shape}")
 #st.dataframe(btc_usdt.head())
@@ -52,12 +56,13 @@ btc_usdt=btc_usdt.drop(["amount","vol","count"],axis=1)
 X = btc_usdt.drop("close", axis=1)  # Features: all columns except 'Close'
 y = btc_usdt["close"]  # Target: 'Close' price
 with st.expander("Features and targets"):
+    st.subheader("selected Fatures and the target:")
     col1,col2=st.columns([0.7,0.3])
     with col1:
-        st.write("features".upper())
+        st.write("features".capitalize())
         st.dataframe(X)
     with col2:
-        st.write("targets".upper())
+        st.write("target".capitalize())
         st.dataframe(y)
 st.write(f"\nFeatures shape: {X.shape}, Target shape: {y.shape}")  # Print shapes
 
@@ -333,23 +338,21 @@ ct_vt.pyplot(plot_predictions("Voting Regressor", vote_pred,X_test,y_test))
 # *************************************************************
 #from lightgbm
 
-st.pyplot(plot_feature_importance(
+ct_RF.pyplot(plot_feature_importance(
     best_rf.feature_importances_, X_train.columns, "Random Forest"
 ))  # RF feature importance
-st.pyplot(plot_feature_importance(
+ct_AdaB.pyplot(plot_feature_importance(
     best_ada.feature_importances_,X_train.columns, "AdaBoost"
 )) #adaboost feature importance
-st.pyplot(plot_feature_importance(
+ct_XGB.pyplot(plot_feature_importance(
     best_xgb.feature_importances_, X_train.columns, "XGBoost"
 ))  # XGB feature importance
-st.pyplot(plot_feature_importance(
-    best_LGBM.feature_importances_, X_train.columns, "LightGBM"
-))  # XGB feature importance
-#best_LGBM.
-
-st.pyplot(plot_feature_importance(
+ct_GB.pyplot(plot_feature_importance(
     best_gb.feature_importances_,X_train.columns, "Gradient Boosting"))
-
+ct_LGBM.pyplot(plot_feature_importance(
+    best_LGBM.feature_importances_, X_train.columns, "LightGBM"
+))  # LightGBM feature importance
+#best_LGBM.
 
 import numpy as np  # Import numpy
 import matplotlib.pyplot as plt  # Import plotting library
